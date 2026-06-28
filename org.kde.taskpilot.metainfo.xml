@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Eric Frost -->
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>org.kde.taskpilot</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>TaskPilot</name>
+  <summary>Manage systemd services, timers, mounts, cron jobs and more</summary>
+  <description>
+    <p>
+      TaskPilot is a comprehensive system task manager for the KDE desktop.
+      It provides a single graphical front-end for the many moving parts of a
+      modern Linux system: systemd services and timers, mounts, cron jobs,
+      autostart entries, listening ports, the journal, snaps and containers.
+    </p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Managing systemd services with status, scope and Hide-Defaults filters</caption>
+      <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/services.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Viewing and editing cron jobs</caption>
+      <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/cron.png</image>
+    </screenshot>
+  </screenshots>
+  <launchable type="desktop-id">org.kde.taskpilot.desktop</launchable>
+  <url type="homepage">https://github.com/eric-frost/taskpilot</url>
+  <url type="bugtracker">https://github.com/eric-frost/taskpilot/issues</url>
+  <developer id="io.github.eric_frost">
+    <name>Eric Frost</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.3.0" date="2026-06-28">
+      <description>
+        <p>Per-tab right-click menus (Logs, Dependencies, Edit Unit File, Env
+           Files, Run Now, Terminate/Kill a port's process, container Remove); a
+           Tools menu to create units and view failed units and startup-time
+           analysis; elevated actions (Ports, Docker, other users' crontabs) via
+           polkit; and an application icon.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-06-27">
+      <description>
+        <p>All tabs ported to C++/KF6: Services, Timers, Mounts, Cron, Autostart,
+           Ports, Journal, Snaps, Containers (docker/podman/incus), plus a new
+           Sessions tab for logind sessions.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-06-27">
+      <description>
+        <p>Initial C++/KDE Frameworks port: Services tab over systemd D-Bus.</p>
+      </description>
+    </release>
+  </releases>
+</component>

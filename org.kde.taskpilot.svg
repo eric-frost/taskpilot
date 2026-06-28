@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Eric Frost -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="128" cy="128" r="120" fill="#1a3c5e"/>
+  <!-- A paper plane: "pilot" of your system tasks. -->
+  <g transform="translate(50,58) scale(6.1)" fill="#ffffff">
+    <path d="M2,21 L23,12 L2,3 V10 L17,12 L2,14 Z"/>
+  </g>
+  <path transform="translate(50,58) scale(6.1)" d="M2,10 L17,12 L2,14" fill="none"
+        stroke="#1a3c5e" stroke-width="0.6" stroke-linejoin="round" opacity="0.35"/>
+</svg>

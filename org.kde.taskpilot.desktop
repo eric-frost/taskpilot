@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=TaskPilot
+GenericName=System Task Manager
+Comment=Manage systemd services, timers, mounts, cron jobs and more
+Exec=taskpilot
+Icon=org.kde.taskpilot
+Terminal=false
+Categories=Qt;KDE;System;
+Keywords=systemd;service;timer;mount;cron;daemon;unit;
+X-DBUS-StartupType=Unique
