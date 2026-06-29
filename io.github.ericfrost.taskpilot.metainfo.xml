@@ -21,8 +21,8 @@
       <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/services.png</image>
     </screenshot>
     <screenshot>
-      <caption>Viewing and editing cron jobs</caption>
-      <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/cron.png</image>
+      <caption>Listening ports and their processes (dark theme)</caption>
+      <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/ports.png</image>
     </screenshot>
   </screenshots>
   <launchable type="desktop-id">io.github.ericfrost.taskpilot.desktop</launchable>

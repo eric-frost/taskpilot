@@ -56,4 +56,9 @@ bool killProcess(int pid, const QString &signal, QString *error = nullptr);
     reload the daemon. True on success. */
 bool writeUnit(const QString &path, const QString &content, QString *error = nullptr);
 
+/** Run a snap service @p verb (start|stop|restart|logs) on @p service as root.
+    For "logs", @p output receives the log text. True on success. */
+bool snap(const QString &verb, const QString &service, QString *output = nullptr,
+          QString *error = nullptr);
+
 } // namespace Auth

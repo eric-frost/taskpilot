@@ -51,4 +51,8 @@ public Q_SLOTS:
     /** Write a systemd unit file under /etc/systemd/system as root, then reload
         the daemon (io.github.ericfrost.taskpilot.writeunit). Args "path" + "content". */
     ActionReply writeunit(const QVariantMap &args);
+
+    /** Control a snap service as root (io.github.ericfrost.taskpilot.snap). Args
+        "verb" (start|stop|restart|logs) + "service"; logs returns data["out"]. */
+    ActionReply snap(const QVariantMap &args);
 };

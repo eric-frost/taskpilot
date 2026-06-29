@@ -169,6 +169,9 @@ void wireContainers(QWidget *parent, CommandTab *tab)
 // Timers row is [Timer, Status, Scope, …]; id = col 0, scope = col 2.
 void wireTimers(QWidget *parent, CommandTab *tab)
 {
+    tab->addBarAction(i18nc("@action", "Add"), QStringLiteral("list-add"),
+                      [parent] { UnitCreatorDialog(parent, QStringLiteral("timer")).exec(); });
+
     auto life = [parent](const QString &text, const QString &icon, const QString &verb) {
         return CommandTab::RowAction{text, icon, [parent, verb](const QStringList &row) {
             if (row.size() < 3)
@@ -247,32 +250,8 @@ void wireCron(QWidget *parent, CommandTab *tab)
     };
     populate(false);
 
-    // Elevate: fetch the user list as root, then enable the other-user views.
-    tab->addBarAction(i18nc("@action", "Elevate"), QStringLiteral("security-high"),
-                      [parent, populate, repoint] {
-        QString error;
-        Auth::cronUsers(&error); // probe → polkit prompt
-        if (!error.isEmpty()) {
-            KMessageBox::error(parent, error, i18nc("@title:window", "Elevation Failed"));
-            return;
-        }
-        populate(true);
-        repoint();
-    });
-
-    tab->addBarWidget(userCombo);
-    QObject::connect(userCombo, &QComboBox::currentIndexChanged, tab,
-                     [userCombo, selected, repoint](int) {
-        *selected = userCombo->currentData().toString();
-        repoint();
-    });
-
-    // In "All" view, CRUD targets each row's own User column; otherwise the combo user.
-    auto targetUser = [selected](const QStringList &row) -> QString {
-        return *selected == Cron::kAllUsers ? row.value(0) : *selected;
-    };
-
-    tab->addMenuAction(i18nc("@action", "Add"), QStringLiteral("list-add"), [parent, tab, selected, userCombo] {
+    // Add (shared by the +Add toolbar button and the right-click menu).
+    auto addJob = [parent, tab, selected, userCombo] {
         // In the "All" view, let the user pick whose crontab to add to.
         QStringList users;
         if (*selected == Cron::kAllUsers)
@@ -289,7 +268,35 @@ void wireCron(QWidget *parent, CommandTab *tab)
         if (!Cron::add(user, dlg.job(), &error))
             KMessageBox::error(parent, error);
         tab->refresh();
+    };
+    tab->addBarAction(i18nc("@action", "Add"), QStringLiteral("list-add"), addJob);
+
+    // Elevate: fetch the user list as root, then enable the other-user views.
+    tab->addBarAction(i18nc("@action", "Elevate"), QStringLiteral("security-high"),
+                      [parent, populate, repoint] {
+        QString error;
+        Auth::cronUsers(&error); // probe → polkit prompt
+        if (!error.isEmpty()) {
+            KMessageBox::error(parent, error, i18nc("@title:window", "Elevation Failed"));
+            return;
+        }
+        populate(true);
+        repoint();
+    }, i18nc("@info:tooltip", "Enter your password to view and edit other users' crontabs."));
+
+    tab->addBarWidget(userCombo);
+    QObject::connect(userCombo, &QComboBox::currentIndexChanged, tab,
+                     [userCombo, selected, repoint](int) {
+        *selected = userCombo->currentData().toString();
+        repoint();
     });
+
+    // In "All" view, CRUD targets each row's own User column; otherwise the combo user.
+    auto targetUser = [selected](const QStringList &row) -> QString {
+        return *selected == Cron::kAllUsers ? row.value(0) : *selected;
+    };
+
+    tab->addMenuAction(i18nc("@action", "Add"), QStringLiteral("list-add"), addJob);
 
     tab->addMenuAction(i18nc("@action", "Edit"), QStringLiteral("document-edit"), [parent, tab, targetUser] {
         const QStringList row = firstSelected(parent, tab);
@@ -357,7 +364,7 @@ Autostart::Entry autostartEntryFromRow(const QStringList &r)
 
 void wireAutostart(QWidget *parent, CommandTab *tab)
 {
-    tab->addMenuAction(i18nc("@action", "Add"), QStringLiteral("list-add"), [parent, tab] {
+    auto addEntry = [parent, tab] {
         AutostartEditDialog dlg(parent);
         if (dlg.exec() != QDialog::Accepted)
             return;
@@ -365,7 +372,9 @@ void wireAutostart(QWidget *parent, CommandTab *tab)
         if (!Autostart::save(dlg.entry(), &error))
             KMessageBox::error(parent, error);
         tab->refresh();
-    });
+    };
+    tab->addBarAction(i18nc("@action", "Add"), QStringLiteral("list-add"), addEntry);
+    tab->addMenuAction(i18nc("@action", "Add"), QStringLiteral("list-add"), addEntry);
 
     tab->addMenuAction(i18nc("@action", "Edit"), QStringLiteral("document-edit"), [parent, tab] {
         const QStringList row = firstSelected(parent, tab);
@@ -430,11 +439,13 @@ void wireMounts(QWidget *parent, CommandTab *tab)
             KMessageBox::error(parent, error, i18nc("@title:window", "Unmount Failed"));
     }});
 
-    tab->addMenuAction(i18nc("@action", "New Bind Link"), QStringLiteral("edit-link"), [parent, tab] {
+    auto newBindLink = [parent, tab] {
         BindLinkDialog dlg(parent);
         dlg.exec();
         tab->refresh();
-    });
+    };
+    tab->addBarAction(i18nc("@action", "New Bind Link"), QStringLiteral("edit-link"), newBindLink);
+    tab->addMenuAction(i18nc("@action", "New Bind Link"), QStringLiteral("edit-link"), newBindLink);
 
     tab->addMenuAction(i18nc("@action", "Unlink Bind"), QStringLiteral("edit-delete"), [parent, tab] {
         const QVector<QStringList> rows = selectedBindRows(parent, tab);
@@ -475,6 +486,70 @@ void wireMounts(QWidget *parent, CommandTab *tab)
             if (!source.isEmpty())
                 QProcess::startDetached(QStringLiteral("xdg-open"), {source});
         }
+    });
+}
+
+/*┌──────────────────────╮
+  | Sessions             |
+  └──────────────────────╯*/
+
+// Sessions row is [Session, User, …]; id = col 0, user = col 1.
+void wireSessions(QWidget *parent, CommandTab *tab)
+{
+    tab->addMenuAction(i18nc("@action", "End Session"), QStringLiteral("system-log-out"), [parent, tab] {
+        const QStringList row = firstSelected(parent, tab);
+        if (row.isEmpty())
+            return;
+        const QString id = row.value(0), user = row.value(1);
+        if (!confirm(parent, i18n("End session %1 for user %2? This logs them out and closes their running programs.",
+                                  id, user),
+                     KGuiItem(i18nc("@action:button", "End Session"))))
+            return;
+        QProcess p; // own session works directly; others prompt polkit
+        p.start(QStringLiteral("loginctl"), {QStringLiteral("terminate-session"), id});
+        p.waitForFinished(8000);
+        if (p.exitStatus() != QProcess::NormalExit || p.exitCode() != 0) {
+            const QString err = QString::fromUtf8(p.readAllStandardError()).trimmed();
+            KMessageBox::error(parent, err.isEmpty() ? i18n("Failed to end the session.") : err);
+        }
+        tab->refresh();
+    });
+}
+
+/*┌──────────────────────╮
+  | Snaps                |
+  └──────────────────────╯*/
+
+// Snaps row is [Snap, Service, Startup, Status, Notes]; service = col 1.
+void wireSnaps(QWidget *parent, CommandTab *tab)
+{
+    auto svcLife = [parent](const QString &text, const QString &icon, const QString &verb) {
+        return CommandTab::RowAction{text, icon, [parent, verb](const QStringList &row) {
+            const QString service = row.value(1);
+            if (service.isEmpty())
+                return;
+            QString error;
+            if (!Auth::snap(verb, service, nullptr, &error) && !error.isEmpty())
+                KMessageBox::error(parent, error, i18nc("@title:window", "Snap Action Failed"));
+        }};
+    };
+    tab->addRowAction(svcLife(i18nc("@action", "Start"), QStringLiteral("media-playback-start"), QStringLiteral("start")));
+    tab->addRowAction(svcLife(i18nc("@action", "Stop"), QStringLiteral("media-playback-stop"), QStringLiteral("stop")));
+    tab->addRowAction(svcLife(i18nc("@action", "Restart"), QStringLiteral("system-reboot"), QStringLiteral("restart")));
+
+    tab->addMenuAction(i18nc("@action", "Logs"), QStringLiteral("text-x-log"), [parent, tab] {
+        const QStringList row = firstSelected(parent, tab);
+        const QString service = row.value(1);
+        if (service.isEmpty())
+            return;
+        QString out, error;
+        Auth::snap(QStringLiteral("logs"), service, &out, &error);
+        if (!error.isEmpty()) {
+            KMessageBox::error(parent, error);
+            return;
+        }
+        Dialogs::showText(parent, i18nc("@title:window", "Snap Logs: %1", service),
+                          out.isEmpty() ? i18n("(no output)") : out, true);
     });
 }
 
@@ -587,11 +662,13 @@ MainWindow::MainWindow(QWidget *parent) : KXmlGuiWindow(parent)
     mTabs->addTab(new JournalTab(this), i18nc("@title:tab", "Journal"));
 
     // 7. Snaps.
-    mTabs->addTab(new CommandTab(
+    auto *snapsTab = new CommandTab(
         {i18nc("@title:column", "Snap"), i18nc("@title:column", "Service"),
          i18nc("@title:column", "Startup"), i18nc("@title:column", "Status"),
          i18nc("@title:column", "Notes")},
-        3, Fetchers::snaps, {}, this), i18nc("@title:tab", "Snaps"));
+        3, Fetchers::snaps, {}, this);
+    wireSnaps(this, snapsTab);
+    mTabs->addTab(snapsTab, i18nc("@title:tab", "Snaps"));
 
     // 8. Containers (lifecycle + logs/inspect/shell).
     auto *containersTab = new CommandTab(
@@ -613,13 +690,15 @@ MainWindow::MainWindow(QWidget *parent) : KXmlGuiWindow(parent)
     wireMounts(this, mountsTab);
     mTabs->addTab(mountsTab, i18nc("@title:tab", "Mounts"));
 
-    // 10. Sessions (logind) — new in the C++ port.
-    mTabs->addTab(new CommandTab(
+    // 10. Sessions (logind) — with an End Session action.
+    auto *sessionsTab = new CommandTab(
         {i18nc("@title:column", "Session"), i18nc("@title:column", "User"),
          i18nc("@title:column", "UID"), i18nc("@title:column", "Seat"),
          i18nc("@title:column", "TTY"), i18nc("@title:column", "Type"),
          i18nc("@title:column", "State"), i18nc("@title:column", "Remote")},
-        6, Fetchers::sessions, {}, this), i18nc("@title:tab", "Sessions"));
+        6, Fetchers::sessions, {}, this);
+    wireSessions(this, sessionsTab);
+    mTabs->addTab(sessionsTab, i18nc("@title:tab", "Sessions"));
 
     setupActions();
     // No main toolbar (each tab has its own below the tabs) and no status bar —

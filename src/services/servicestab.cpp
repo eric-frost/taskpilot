@@ -3,6 +3,7 @@
 
 #include "servicestab.h"
 
+#include "editors/unitcreator.h"
 #include "servicemodel.h"
 #include "systemd/systemdmanager.h"
 #include "unitactions.h"
@@ -144,6 +145,13 @@ ServicesTab::ServicesTab(QWidget *parent) : QWidget(parent)
         QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("@action", "Refresh"));
     refreshAct->setShortcut(QKeySequence::Refresh);
     connect(refreshAct, &QAction::triggered, this, &ServicesTab::refresh);
+
+    QAction *addAct = toolbar->addAction(QIcon::fromTheme(QStringLiteral("list-add")),
+                                         i18nc("@action", "Add"));
+    addAct->setToolTip(i18nc("@info:tooltip", "Create a new systemd service unit."));
+    connect(addAct, &QAction::triggered, this, [this] {
+        UnitCreatorDialog(this, QStringLiteral("service")).exec();
+    });
 
     mSearch = new QLineEdit(this);
     mSearch->setPlaceholderText(i18nc("@info:placeholder", "Search services…"));

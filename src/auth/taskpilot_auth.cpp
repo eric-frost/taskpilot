@@ -361,4 +361,39 @@ ActionReply TaskpilotAuthHelper::writeunit(const QVariantMap &args)
     return ActionReply::SuccessReply();
 }
 
+ActionReply TaskpilotAuthHelper::snap(const QVariantMap &args)
+{
+    hardenPath();
+    static const QSet<QString> verbs = {QStringLiteral("start"), QStringLiteral("stop"),
+                                        QStringLiteral("restart"), QStringLiteral("logs")};
+    static const QRegularExpression svcRe(QStringLiteral("\\A[A-Za-z0-9][A-Za-z0-9._-]*\\z"));
+    const QString verb = args.value(QStringLiteral("verb")).toString();
+    const QString service = args.value(QStringLiteral("service")).toString();
+    if (!verbs.contains(verb))
+        return errorReply(QStringLiteral("invalid verb"));
+    if (!isString(args, QStringLiteral("service")) || !svcRe.match(service).hasMatch())
+        return errorReply(QStringLiteral("invalid service"));
+
+    QProcess p;
+    const QStringList a = verb == QLatin1String("logs")
+        ? QStringList{QStringLiteral("logs"), QStringLiteral("-n"), QStringLiteral("200"), service}
+        : QStringList{verb, service};
+    p.start(QStringLiteral("snap"), a);
+    if (!p.waitForStarted(2000))
+        return errorReply(QStringLiteral("could not run snap"));
+    p.waitForFinished(15000);
+
+    if (verb == QLatin1String("logs")) {
+        const QString out = QString::fromUtf8(p.readAllStandardOutput())
+                          + QString::fromUtf8(p.readAllStandardError());
+        ActionReply reply = ActionReply::SuccessReply();
+        reply.setData({{QStringLiteral("out"), out}});
+        return reply;
+    }
+    if (p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0)
+        return ActionReply::SuccessReply();
+    const QString err = QString::fromUtf8(p.readAllStandardError()).trimmed();
+    return errorReply(err.isEmpty() ? QStringLiteral("snap command failed") : err);
+}
+
 KAUTH_HELPER_MAIN("io.github.ericfrost.taskpilot", TaskpilotAuthHelper)

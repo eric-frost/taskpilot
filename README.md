@@ -10,10 +10,10 @@ front-end for the many moving parts of a modern Linux system: **systemd
 services and timers, mounts, cron jobs, autostart entries, listening ports, the
 journal, snaps, containers and login sessions** — each in its own tab.
 
-Built with Qt 6 and KDE Frameworks 6 (a C++ port of an earlier PyQt prototype).
+Built with Qt 6 and KDE Frameworks 6.
 
 ![Services](screenshots/services.png)
-![Cron](screenshots/cron.png)
+![Ports](screenshots/ports.png)
 
 ## Features
 

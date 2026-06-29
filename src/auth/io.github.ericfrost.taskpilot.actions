@@ -46,3 +46,9 @@ Policy=auth_admin
 Name=Create or edit a system unit file
 Description=Administrator authentication is required to write a system service or timer unit.
 Policy=auth_admin
+
+[io.github.ericfrost.taskpilot.snap]
+Name=Manage snap services
+Description=Administrator authentication is required to control snap services.
+Policy=auth_admin
+Persistence=session

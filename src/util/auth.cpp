@@ -154,3 +154,14 @@ bool Auth::writeUnit(const QString &path, const QString &content, QString *error
         *error = r.error;
     return r.ok;
 }
+
+bool Auth::snap(const QString &verb, const QString &service, QString *output, QString *error)
+{
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.snap"),
+                               {{QStringLiteral("verb"), verb}, {QStringLiteral("service"), service}});
+    if (output)
+        *output = r.data.value(QStringLiteral("out")).toString();
+    if (!r.ok && error)
+        *error = r.error;
+    return r.ok;
+}
