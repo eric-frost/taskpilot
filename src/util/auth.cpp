@@ -28,7 +28,7 @@ Result runOnMain(const QString &name, const QVariantMap &args)
 {
     auto body = [&]() -> Result {
         Action action(name);
-        action.setHelperId(QStringLiteral("org.kde.taskpilot"));
+        action.setHelperId(QStringLiteral("io.github.ericfrost.taskpilot"));
         action.setArguments(args);
         // Some actions shell out to several slow commands as root; raise the
         // D-Bus reply timeout above the 25 s default.
@@ -63,7 +63,7 @@ QVector<QStringList> toRows(const QVariantMap &data, const QString &key)
 
 bool Auth::unmount(const QString &target, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.unmount"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.unmount"),
                                {{QStringLiteral("target"), target}});
     if (!r.ok && error)
         *error = r.error;
@@ -72,7 +72,7 @@ bool Auth::unmount(const QString &target, QString *error)
 
 QVector<QStringList> Auth::elevatedPorts(QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.ports"), {});
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.ports"), {});
     if (!r.ok && error)
         *error = r.error;
     return toRows(r.data, QStringLiteral("rows"));
@@ -80,7 +80,7 @@ QVector<QStringList> Auth::elevatedPorts(QString *error)
 
 bool Auth::bindln(const QStringList &args, QString *output, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.bindln"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.bindln"),
                                {{QStringLiteral("args"), args}});
     if (!r.ok) {
         if (error)
@@ -95,7 +95,7 @@ bool Auth::bindln(const QStringList &args, QString *output, QString *error)
 
 QVector<QStringList> Auth::dockerList(QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.dockerlist"), {});
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.dockerlist"), {});
     if (!r.ok && error)
         *error = r.error;
     return toRows(r.data, QStringLiteral("rows"));
@@ -103,7 +103,7 @@ QVector<QStringList> Auth::dockerList(QString *error)
 
 QVector<Auth::CronUser> Auth::cronUsers(QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.cronread"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.cronread"),
                                {{QStringLiteral("cmd"), QStringLiteral("users")}});
     if (!r.ok && error)
         *error = r.error;
@@ -120,7 +120,7 @@ QVector<Auth::CronUser> Auth::cronUsers(QString *error)
 
 QString Auth::cronList(const QString &user, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.cronread"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.cronread"),
                                {{QStringLiteral("cmd"), QStringLiteral("list")},
                                 {QStringLiteral("user"), user}});
     if (!r.ok && error)
@@ -130,7 +130,7 @@ QString Auth::cronList(const QString &user, QString *error)
 
 bool Auth::cronSave(const QString &user, const QString &text, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.cronsave"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.cronsave"),
                                {{QStringLiteral("user"), user}, {QStringLiteral("text"), text}});
     if (!r.ok && error)
         *error = r.error;
@@ -139,7 +139,7 @@ bool Auth::cronSave(const QString &user, const QString &text, QString *error)
 
 bool Auth::killProcess(int pid, const QString &signal, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.kill"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.kill"),
                                {{QStringLiteral("pid"), pid}, {QStringLiteral("signal"), signal}});
     if (!r.ok && error)
         *error = r.error;
@@ -148,7 +148,7 @@ bool Auth::killProcess(int pid, const QString &signal, QString *error)
 
 bool Auth::writeUnit(const QString &path, const QString &content, QString *error)
 {
-    const Result r = runOnMain(QStringLiteral("org.kde.taskpilot.writeunit"),
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.writeunit"),
                                {{QStringLiteral("path"), path}, {QStringLiteral("content"), content}});
     if (!r.ok && error)
         *error = r.error;

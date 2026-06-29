@@ -38,9 +38,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(src)
 
 # 1. Desktop entry + AppStream metadata + scalable app icon
-install(FILES org.kde.taskpilot.desktop DESTINATION ${KDE_INSTALL_APPDIR})
-install(FILES org.kde.taskpilot.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
-install(FILES org.kde.taskpilot.svg
+install(FILES io.github.ericfrost.taskpilot.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+install(FILES io.github.ericfrost.taskpilot.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
+install(FILES io.github.ericfrost.taskpilot.svg
         DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

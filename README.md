@@ -66,5 +66,3 @@ the `LICENSES/` directory and the SPDX headers in each file.
 ## Author
 
 Eric Frost
-
-> Note: the AppStream component id is currently `org.kde.taskpilot` (provisional).

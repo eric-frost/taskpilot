@@ -2,7 +2,7 @@
 <!-- SPDX-FileCopyrightText: 2026 Eric Frost -->
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <component type="desktop-application">
-  <id>org.kde.taskpilot</id>
+  <id>io.github.ericfrost.taskpilot</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>TaskPilot</name>
@@ -25,10 +25,10 @@
       <image>https://raw.githubusercontent.com/eric-frost/taskpilot/main/screenshots/cron.png</image>
     </screenshot>
   </screenshots>
-  <launchable type="desktop-id">org.kde.taskpilot.desktop</launchable>
+  <launchable type="desktop-id">io.github.ericfrost.taskpilot.desktop</launchable>
   <url type="homepage">https://github.com/eric-frost/taskpilot</url>
   <url type="bugtracker">https://github.com/eric-frost/taskpilot/issues</url>
-  <developer id="io.github.eric_frost">
+  <developer id="io.github.ericfrost">
     <name>Eric Frost</name>
   </developer>
   <content_rating type="oars-1.1"/>

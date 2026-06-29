@@ -361,4 +361,4 @@ ActionReply TaskpilotAuthHelper::writeunit(const QVariantMap &args)
     return ActionReply::SuccessReply();
 }
 
-KAUTH_HELPER_MAIN("org.kde.taskpilot", TaskpilotAuthHelper)
+KAUTH_HELPER_MAIN("io.github.ericfrost.taskpilot", TaskpilotAuthHelper)

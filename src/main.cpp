@@ -25,11 +25,11 @@ int main(int argc, char *argv[])
                      i18n("© 2026 Eric Frost"));
     about.addAuthor(i18nc("@info:credit", "Eric Frost"), i18nc("@info:credit", "Author"));
     about.setHomepage(QStringLiteral("https://github.com/eric-frost/taskpilot"));
-    about.setDesktopFileName(QStringLiteral("org.kde.taskpilot"));
+    about.setDesktopFileName(QStringLiteral("io.github.ericfrost.taskpilot"));
 
     KAboutData::setApplicationData(about);
     KCrash::initialize();
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("org.kde.taskpilot")));
+    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("io.github.ericfrost.taskpilot")));
 
     QCommandLineParser parser;
     about.setupCommandLine(&parser);

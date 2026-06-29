@@ -54,5 +54,5 @@ target_include_directories(taskpilot_auth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(taskpilot_auth PRIVATE Qt6::Core KF6::AuthCore)
 install(TARGETS taskpilot_auth DESTINATION ${KAUTH_HELPER_INSTALL_DIR})
 
-kauth_install_helper_files(taskpilot_auth org.kde.taskpilot root)
-kauth_install_actions(org.kde.taskpilot ${CMAKE_CURRENT_SOURCE_DIR}/auth/org.kde.taskpilot.actions)
+kauth_install_helper_files(taskpilot_auth io.github.ericfrost.taskpilot root)
+kauth_install_actions(io.github.ericfrost.taskpilot ${CMAKE_CURRENT_SOURCE_DIR}/auth/io.github.ericfrost.taskpilot.actions)

@@ -2,47 +2,47 @@
 Name=TaskPilot
 Icon=taskpilot
 
-[org.kde.taskpilot.unmount]
+[io.github.ericfrost.taskpilot.unmount]
 Name=Unmount a filesystem
 Description=Administrator authentication is required to unmount this filesystem.
 Policy=auth_admin
 Persistence=session
 
-[org.kde.taskpilot.ports]
+[io.github.ericfrost.taskpilot.ports]
 Name=List all listening sockets
 Description=Administrator authentication is required to inspect root-owned listening sockets.
 Policy=auth_admin
 Persistence=session
 
-[org.kde.taskpilot.bindln]
+[io.github.ericfrost.taskpilot.bindln]
 Name=Manage bind-link mounts
 Description=Administrator authentication is required to create or remove a bind link.
 Policy=auth_admin
 Persistence=session
 
-[org.kde.taskpilot.dockerlist]
+[io.github.ericfrost.taskpilot.dockerlist]
 Name=List Docker and root containers
 Description=Administrator authentication is required to list containers owned by Docker or root.
 Policy=auth_admin
 Persistence=session
 
-[org.kde.taskpilot.cronread]
+[io.github.ericfrost.taskpilot.cronread]
 Name=View any user's crontab
 Description=Administrator authentication is required to view other users' scheduled cron jobs.
 Policy=auth_admin
 Persistence=session
 
-[org.kde.taskpilot.cronsave]
+[io.github.ericfrost.taskpilot.cronsave]
 Name=Edit any user's crontab
 Description=Administrator authentication is required to change another user's scheduled cron jobs.
 Policy=auth_admin
 
-[org.kde.taskpilot.kill]
+[io.github.ericfrost.taskpilot.kill]
 Name=Terminate a process
 Description=Administrator authentication is required to terminate a process owned by another user.
 Policy=auth_admin
 
-[org.kde.taskpilot.writeunit]
+[io.github.ericfrost.taskpilot.writeunit]
 Name=Create or edit a system unit file
 Description=Administrator authentication is required to write a system service or timer unit.
 Policy=auth_admin

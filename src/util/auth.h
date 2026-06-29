@@ -7,7 +7,7 @@
 #include <QStringList>
 #include <QVector>
 
-/** Client-side wrappers around the org.kde.taskpilot KAuth helper. Each call
+/** Client-side wrappers around the io.github.ericfrost.taskpilot KAuth helper. Each call
     triggers a polkit prompt (cached per session) and runs the work as root.
     Synchronous — invoke off the UI thread (the CommandTab fetch path does). */
 namespace Auth {
