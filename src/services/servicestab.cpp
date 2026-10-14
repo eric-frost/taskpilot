@@ -9,21 +9,52 @@
 #include "unitactions.h"
 #include "util/icons.h"
 
+#include <KConfigGroup>
 #include <KLocalizedString>
+#include <KSharedConfig>
 
 #include <QAction>
 #include <QCheckBox>
 #include <functional>
 #include <QComboBox>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
+#include <QSet>
 #include <QSortFilterProxyModel>
 #include <QTableView>
 #include <QToolBar>
 #include <QVBoxLayout>
+
+#include <utility>
+
+namespace {
+
+bool isTemplatedInstance(const QString &id)
+{
+    return id.endsWith(QLatin1String(".service")) && id.contains(QLatin1Char('@'))
+        && !id.contains(QLatin1String("@."));
+}
+
+QString templateIdFor(const QString &id)
+{
+    if (!isTemplatedInstance(id))
+        return {};
+    const int at = id.indexOf(QLatin1Char('@'));
+    const int suffix = id.lastIndexOf(QLatin1String(".service"));
+    return id.left(at + 1) + id.mid(suffix);
+}
+
+QString configKeyForScope(const QString &scope)
+{
+    return scope == QLatin1String("System") ? QStringLiteral("SystemServices")
+                                            : QStringLiteral("UserServices");
+}
+
+} // namespace
 
 /** Proxy adding scope / status / Hide-Defaults predicates on top of a free-text
     search across all unit fields. Reads the source ServiceModel's UnitInfo
@@ -204,7 +235,60 @@ void ServicesTab::refresh()
         all += mSystem->listUnits(QStringLiteral(".service"));
     if (mUser->isAvailable())
         all += mUser->listUnits(QStringLiteral(".service"));
+    appendRememberedTemplatedInstances(all);
     mModel->setUnits(all);
+}
+
+void ServicesTab::rememberTemplatedInstance(const UnitInfo &unit)
+{
+    if (!isTemplatedInstance(unit.id))
+        return;
+
+    auto config = KSharedConfig::openConfig();
+    KConfigGroup group(config, QStringLiteral("KnownTemplatedServiceInstances"));
+    const QString key = configKeyForScope(unit.scope);
+    QStringList known = group.readEntry(key, QStringList{});
+    if (known.contains(unit.id))
+        return;
+    known << unit.id;
+    known.removeDuplicates();
+    known.sort(Qt::CaseInsensitive);
+    group.writeEntry(key, known);
+    group.sync();
+}
+
+void ServicesTab::appendRememberedTemplatedInstances(QVector<UnitInfo> &units) const
+{
+    QSet<QString> present;
+    QHash<QString, UnitInfo> templates;
+    for (const UnitInfo &u : std::as_const(units)) {
+        present.insert(u.scope + QLatin1Char('\n') + u.id);
+        if (u.id.contains(QLatin1String("@.")))
+            templates.insert(u.scope + QLatin1Char('\n') + u.id, u);
+    }
+
+    const KConfigGroup group(KSharedConfig::openConfig(), QStringLiteral("KnownTemplatedServiceInstances"));
+    for (const QString &scope : {QStringLiteral("System"), QStringLiteral("User")}) {
+        for (const QString &id : group.readEntry(configKeyForScope(scope), QStringList{})) {
+            const QString unitKey = scope + QLatin1Char('\n') + id;
+            if (present.contains(unitKey))
+                continue;
+            const QString templateKey = scope + QLatin1Char('\n') + templateIdFor(id);
+            if (!templates.contains(templateKey))
+                continue;
+            UnitInfo remembered = templates.value(templateKey);
+            remembered.id = id;
+            remembered.scope = scope;
+            if (remembered.description.isEmpty())
+                remembered.description = i18nc("@info", "Remembered templated service instance");
+            remembered.activeState = QStringLiteral("inactive");
+            remembered.subState = QStringLiteral("dead");
+            remembered.unitFileState = QStringLiteral("disabled");
+            remembered.objectPath.clear();
+            units.append(remembered);
+            present.insert(unitKey);
+        }
+    }
 }
 
 void ServicesTab::runOnSelection(Action action)
@@ -218,6 +302,8 @@ void ServicesTab::runOnSelection(Action action)
         const int srcRow = mProxy->mapToSource(proxyIdx).row();
         const UnitInfo &u = mModel->unitAt(srcRow);
         SystemdManager *mgr = u.scope == QLatin1String("System") ? mSystem : mUser;
+        if (action == Disable)
+            rememberTemplatedInstance(u);
 
         QString error;
         bool ok = false;

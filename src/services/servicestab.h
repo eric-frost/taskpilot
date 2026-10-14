@@ -5,11 +5,13 @@
 
 #include <QList>
 #include <QString>
+#include <QVector>
 #include <QWidget>
 
 class ServiceModel;
 class ServiceFilterProxy;
 class SystemdManager;
+struct UnitInfo;
 class QTableView;
 class QLineEdit;
 class QComboBox;
@@ -32,6 +34,8 @@ private:
     void runOnSelection(Action action);
     // Run a UnitActions viewer (logs/deps/…) on the first selected unit.
     void viewerOnSelection(void (*fn)(QWidget *, const QString &id, const QString &scope));
+    void rememberTemplatedInstance(const UnitInfo &unit);
+    void appendRememberedTemplatedInstances(QVector<UnitInfo> &units) const;
 
     SystemdManager *mSystem;
     SystemdManager *mUser;
