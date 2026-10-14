@@ -22,9 +22,9 @@ Persistence=session
 
 [io.github.ericfrost.taskpilot.dockerlist]
 Name=List Docker and root containers
-Description=Administrator authentication is required to list containers owned by Docker or root.
-Policy=auth_admin
-Persistence=session
+Description=Authentication is required to list containers owned by Docker or root.
+Policy=yes
+PolicyInactive=auth_admin
 
 [io.github.ericfrost.taskpilot.dockercontrol]
 Name=Control Docker and root containers

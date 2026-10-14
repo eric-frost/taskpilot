@@ -18,6 +18,12 @@ QVector<QStringList> snaps();       // snap services
 QVector<QStringList> containers();  // Docker contexts / podman / incus / lxd
 QVector<QStringList> sessions();    // logind sessions (loginctl)
 
+/** containers() plus the Docker and Podman containers owned by root, listed by
+    the KAuth helper so they show without docker-group membership.  This is how
+    VM-in-container images such as dockurr/windows appear.  May prompt for a
+    password unless Auth::dockerListAllowed(). */
+QVector<QStringList> containersWithRoot();
+
 /** One user's crontab as rows [User,Min,Hour,DoM,Month,DoW,Command]. The current
     user is read directly; other users via KAuth. The Cron::kAllUsers sentinel
     aggregates every crontab-bearing user (requires prior elevation). */

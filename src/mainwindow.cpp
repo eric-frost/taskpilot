@@ -28,7 +28,6 @@
 #include <QHash>
 #include <QIcon>
 #include <QProcess>
-#include <QSet>
 #include <QTabWidget>
 
 #include <functional>
@@ -166,7 +165,7 @@ CommandTab::RowAction containerAction(QWidget *parent, const QString &text, cons
     }};
 }
 
-void wireContainers(QWidget *parent, CommandTab *tab)
+void wireContainers(QWidget *parent, CommandTab *tab, bool rootListed)
 {
     tab->addRowAction(containerAction(parent, i18nc("@action", "Start"),
         QStringLiteral("media-playback-start"), QStringLiteral("start")));
@@ -224,9 +223,11 @@ void wireContainers(QWidget *parent, CommandTab *tab)
         tab->refresh();
     });
 
-    // Show Root Docker: merge root-owned docker/podman containers (via KAuth)
-    // with the unprivileged/context list, so Docker VMs are visible without
-    // adding the user to the docker group.
+    // Root-owned Docker/Podman containers (where Docker VMs such as Windows
+    // usually live) are listed from the start when polkit allows it without a
+    // password (@p rootListed); otherwise this button asks for one.
+    if (rootListed)
+        return;
     tab->addBarAction(i18nc("@action", "Show Root Docker"), QStringLiteral("security-high"), [parent, tab] {
         QString error;
         Auth::dockerList(&error); // probe → polkit prompt
@@ -234,17 +235,7 @@ void wireContainers(QWidget *parent, CommandTab *tab)
             KMessageBox::error(parent, error, i18nc("@title:window", "Elevation Failed"));
             return;
         }
-        tab->setFetcher([] {
-            QVector<QStringList> rows = Fetchers::containers();
-            QSet<QString> ids;
-            for (const QStringList &r : rows)
-                if (!r.value(CId).isEmpty()) // incus rows have no ID — don't poison the set
-                    ids.insert(r.value(CId));
-            for (const QStringList &r : Auth::dockerList())
-                if (r.value(CId).isEmpty() || !ids.contains(r.value(CId)))
-                    rows.append(r);
-            return rows;
-        });
+        tab->setFetcher(Fetchers::containersWithRoot);
         tab->refresh();
     }, i18n("Enter your password to show Docker and Podman containers owned by root, including VM-in-container images."));
 }
@@ -758,14 +749,15 @@ MainWindow::MainWindow(QWidget *parent) : KXmlGuiWindow(parent)
     mTabs->addTab(snapsTab, i18nc("@title:tab", "Snaps"));
 
     // 8. VMs & Containers (lifecycle + logs/inspect/shell).
+    const bool rootContainers = Auth::dockerListAllowed();
     auto *containersTab = new CommandTab(
         {i18nc("@title:column", "Name"), i18nc("@title:column", "Kind"),
          i18nc("@title:column", "Runtime"), i18nc("@title:column", "Host"),
          i18nc("@title:column", "Image"), i18nc("@title:column", "Status"),
          i18nc("@title:column", "Memory"), i18nc("@title:column", "Ports"),
          i18nc("@title:column", "ID"), i18nc("@title:column", "Created")},
-        5, Fetchers::containers, {}, this);
-    wireContainers(this, containersTab);
+        5, rootContainers ? Fetchers::containersWithRoot : Fetchers::containers, {}, this);
+    wireContainers(this, containersTab, rootContainers);
     mTabs->addTab(containersTab, i18nc("@title:tab", "VMs && Containers"));
 
     // 9. Mounts (Unmount + bind-link management) — last, as in the original.

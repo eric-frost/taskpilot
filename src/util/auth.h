@@ -31,6 +31,11 @@ bool bindln(const QStringList &args, QString *output = nullptr, QString *error =
     docker-group membership). Containers-schema rows; empty on auth denial. */
 QVector<QStringList> dockerList(QString *error = nullptr);
 
+/** Whether dockerList() would run without a polkit prompt.  The policy allows
+    it outright for the active local session, since it only lists containers;
+    over SSH or in an inactive session it needs a password. */
+bool dockerListAllowed();
+
 /** Start/stop/restart/remove a local Docker/root-Podman container as root.
     @p runtime is docker|podman, @p verb is start|stop|restart|rm, and @p target
     is a validated container id or name. */

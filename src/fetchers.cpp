@@ -277,6 +277,20 @@ QVector<QStringList> Fetchers::containers()
     return out;
 }
 
+QVector<QStringList> Fetchers::containersWithRoot()
+{
+    constexpr int id = 8;
+    QVector<QStringList> rows = containers();
+    QSet<QString> ids;
+    for (const QStringList &r : rows)
+        if (!r.value(id).isEmpty()) // incus rows have no ID — don't poison the set
+            ids.insert(r.value(id));
+    for (const QStringList &r : Auth::dockerList())
+        if (r.value(id).isEmpty() || !ids.contains(r.value(id)))
+            rows.append(r);
+    return rows;
+}
+
 namespace {
 
 // Parse one crontab's text into rows tagged with @p user.

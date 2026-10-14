@@ -19,16 +19,35 @@ struct Result {
     QString error;
 };
 
-// Run a helper action and collect its result. KAuth/QDBus is thread-affine to
-// the thread that owns the bus connection, and CommandTab calls fetchers on a
-// worker thread — so always marshal the call onto the main thread (the worker
-// blocks until it returns). Without this the reply is delivered to a thread
-// whose event loop never runs it, and the fetch hangs until the timeout.
+// KAuth/QDBus is thread-affine to the thread that owns the bus connection, and
+// CommandTab calls fetchers on a worker thread — so always marshal KAuth calls
+// onto the main thread (the worker blocks until they return). Without this the
+// reply is delivered to a thread whose event loop never runs it, and the fetch
+// hangs until the timeout.
+template<typename Fn>
+auto onMain(Fn body) -> decltype(body())
+{
+    QCoreApplication *app = QCoreApplication::instance();
+    if (!app || QThread::currentThread() == app->thread())
+        return body();
+
+    decltype(body()) result{};
+    QMetaObject::invokeMethod(app, [&] { result = body(); }, Qt::BlockingQueuedConnection);
+    return result;
+}
+
+Action helperAction(const QString &name)
+{
+    Action action(name);
+    action.setHelperId(QStringLiteral("io.github.ericfrost.taskpilot"));
+    return action;
+}
+
+// Run a helper action and collect its result.
 Result runOnMain(const QString &name, const QVariantMap &args)
 {
-    auto body = [&]() -> Result {
-        Action action(name);
-        action.setHelperId(QStringLiteral("io.github.ericfrost.taskpilot"));
+    return onMain([&]() -> Result {
+        Action action = helperAction(name);
         action.setArguments(args);
         // Some actions shell out to slow root commands; Docker VM shutdown can
         // legitimately take up to two minutes, so raise the D-Bus timeout above
@@ -38,15 +57,7 @@ Result runOnMain(const QString &name, const QVariantMap &args)
         if (job->exec())
             return {true, job->data(), {}};
         return {false, {}, job->errorText().isEmpty() ? job->errorString() : job->errorText()};
-    };
-
-    QCoreApplication *app = QCoreApplication::instance();
-    if (!app || QThread::currentThread() == app->thread())
-        return body();
-
-    Result result;
-    QMetaObject::invokeMethod(app, [&] { result = body(); }, Qt::BlockingQueuedConnection);
-    return result;
+    });
 }
 
 // Map a list-of-QStringList data key into rows.
@@ -100,6 +111,15 @@ QVector<QStringList> Auth::dockerList(QString *error)
     if (!r.ok && error)
         *error = r.error;
     return toRows(r.data, QStringLiteral("rows"));
+}
+
+bool Auth::dockerListAllowed()
+{
+    // status() asks polkit without allowing interaction, so it never prompts.
+    return onMain([] {
+        return helperAction(QStringLiteral("io.github.ericfrost.taskpilot.dockerlist")).status()
+            == Action::AuthorizedStatus;
+    });
 }
 
 bool Auth::dockerControl(const QString &runtime, const QString &verb, const QString &target,
