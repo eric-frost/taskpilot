@@ -31,6 +31,12 @@ bool bindln(const QStringList &args, QString *output = nullptr, QString *error =
     docker-group membership). Containers-schema rows; empty on auth denial. */
 QVector<QStringList> dockerList(QString *error = nullptr);
 
+/** Start/stop/restart/remove a local Docker/root-Podman container as root.
+    @p runtime is docker|podman, @p verb is start|stop|restart|rm, and @p target
+    is a validated container id or name. */
+bool dockerControl(const QString &runtime, const QString &verb, const QString &target,
+                   QString *error = nullptr);
+
 /** A user that has a crontab, with its job count (for the Cron user selector). */
 struct CronUser {
     QString user;

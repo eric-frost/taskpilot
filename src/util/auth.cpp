@@ -30,9 +30,10 @@ Result runOnMain(const QString &name, const QVariantMap &args)
         Action action(name);
         action.setHelperId(QStringLiteral("io.github.ericfrost.taskpilot"));
         action.setArguments(args);
-        // Some actions shell out to several slow commands as root; raise the
-        // D-Bus reply timeout above the 25 s default.
-        action.setTimeout(90000);
+        // Some actions shell out to slow root commands; Docker VM shutdown can
+        // legitimately take up to two minutes, so raise the D-Bus timeout above
+        // KAuth's 25 s default.
+        action.setTimeout(180000);
         ExecuteJob *job = action.execute();
         if (job->exec())
             return {true, job->data(), {}};
@@ -99,6 +100,18 @@ QVector<QStringList> Auth::dockerList(QString *error)
     if (!r.ok && error)
         *error = r.error;
     return toRows(r.data, QStringLiteral("rows"));
+}
+
+bool Auth::dockerControl(const QString &runtime, const QString &verb, const QString &target,
+                         QString *error)
+{
+    const Result r = runOnMain(QStringLiteral("io.github.ericfrost.taskpilot.dockercontrol"),
+                               {{QStringLiteral("runtime"), runtime},
+                                {QStringLiteral("verb"), verb},
+                                {QStringLiteral("target"), target}});
+    if (!r.ok && error)
+        *error = r.error;
+    return r.ok;
 }
 
 QVector<Auth::CronUser> Auth::cronUsers(QString *error)

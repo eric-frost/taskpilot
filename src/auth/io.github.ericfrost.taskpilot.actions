@@ -26,6 +26,12 @@ Description=Administrator authentication is required to list containers owned by
 Policy=auth_admin
 Persistence=session
 
+[io.github.ericfrost.taskpilot.dockercontrol]
+Name=Control Docker and root containers
+Description=Administrator authentication is required to control containers owned by Docker or root.
+Policy=auth_admin
+Persistence=session
+
 [io.github.ericfrost.taskpilot.cronread]
 Name=View any user's crontab
 Description=Administrator authentication is required to view other users' scheduled cron jobs.

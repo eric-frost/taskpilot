@@ -35,6 +35,10 @@ public Q_SLOTS:
         only ps/stats are run (never inspect). Rows under data key "rows". */
     ActionReply dockerlist(const QVariantMap &args);
 
+    /** Start/stop/restart/remove a local Docker or root Podman container as root
+        (io.github.ericfrost.taskpilot.dockercontrol). Args: runtime, verb, target. */
+    ActionReply dockercontrol(const QVariantMap &args);
+
     /** Read another user's crontab as root (io.github.ericfrost.taskpilot.cronread, session).
         args "cmd"="users" → data["users"]=[{user,count}]; "cmd"="list"+"user"
         → data["text"]. Read-only. */

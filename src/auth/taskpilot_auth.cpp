@@ -62,6 +62,12 @@ bool isString(const QVariantMap &map, const QString &key)
     return map.value(key).typeId() == QMetaType::QString;
 }
 
+bool validDockerTarget(const QString &target)
+{
+    static const QRegularExpression re(QStringLiteral("\\A[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\\z"));
+    return re.match(target).hasMatch();
+}
+
 // Count real job lines: classic (>=6 fields) or @-shortcuts.
 int countCronJobs(const QString &text)
 {
@@ -241,10 +247,9 @@ ActionReply TaskpilotAuthHelper::dockerlist(const QVariantMap &)
 {
     hardenPath();
     // Hardcoded runtimes — never trust a client-supplied program name as root.
-    // Skip `stats` (withStats=false): it's slow enough as root to time out the call.
     QVector<QStringList> rowsVec;
-    appendDockerLike(QStringLiteral("docker"), rowsVec, false);
-    appendDockerLike(QStringLiteral("podman"), rowsVec, false);
+    appendDockerLike(QStringLiteral("docker"), rowsVec, true, QStringLiteral("root"));
+    appendDockerLike(QStringLiteral("podman"), rowsVec, true, QStringLiteral("root"));
 
     QVariantList rows;
     rows.reserve(rowsVec.size());
@@ -253,6 +258,51 @@ ActionReply TaskpilotAuthHelper::dockerlist(const QVariantMap &)
 
     ActionReply reply = ActionReply::SuccessReply();
     reply.setData({{QStringLiteral("rows"), rows}});
+    return reply;
+}
+
+ActionReply TaskpilotAuthHelper::dockercontrol(const QVariantMap &args)
+{
+    hardenPath();
+    if (!isString(args, QStringLiteral("runtime")) || !isString(args, QStringLiteral("verb"))
+        || !isString(args, QStringLiteral("target")))
+        return errorReply(QStringLiteral("invalid Docker action"));
+
+    const QString runtime = args.value(QStringLiteral("runtime")).toString();
+    const QString verb = args.value(QStringLiteral("verb")).toString();
+    const QString target = args.value(QStringLiteral("target")).toString();
+    if (runtime != QLatin1String("docker") && runtime != QLatin1String("podman"))
+        return errorReply(QStringLiteral("invalid container runtime"));
+    if (verb != QLatin1String("start") && verb != QLatin1String("stop")
+        && verb != QLatin1String("restart") && verb != QLatin1String("rm"))
+        return errorReply(QStringLiteral("invalid container action"));
+    if (!validDockerTarget(target))
+        return errorReply(QStringLiteral("invalid container id or name"));
+
+    QStringList list{verb};
+    if (verb == QLatin1String("stop") || verb == QLatin1String("restart"))
+        list << QStringLiteral("--time") << QStringLiteral("120");
+    list << target;
+
+    QProcess p;
+    p.start(runtime, list);
+    if (!p.waitForStarted(2000))
+        return errorReply(QStringLiteral("could not run %1").arg(runtime));
+    p.waitForFinished(130000);
+    if (p.state() != QProcess::NotRunning) {
+        p.kill();
+        p.waitForFinished(3000);
+        return errorReply(QStringLiteral("%1 %2 timed out").arg(runtime, verb));
+    }
+
+    const bool ok = p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0;
+    ActionReply reply = ok ? ActionReply::SuccessReply() : ActionReply::HelperErrorReply();
+    QVariantMap data{{QStringLiteral("stdout"), QString::fromUtf8(p.readAllStandardOutput())},
+                     {QStringLiteral("stderr"), QString::fromUtf8(p.readAllStandardError())},
+                     {QStringLiteral("code"), p.exitCode()}};
+    reply.setData(data);
+    if (!ok)
+        reply.setErrorDescription(data.value(QStringLiteral("stderr")).toString().trimmed());
     return reply;
 }
 

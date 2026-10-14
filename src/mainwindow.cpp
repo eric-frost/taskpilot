@@ -62,6 +62,12 @@ bool confirm(QWidget *parent, const QString &text, const KGuiItem &primary)
   | Containers           |
   └──────────────────────╯*/
 
+constexpr int CName = 0;
+constexpr int CRuntime = 2;
+constexpr int CHost = 3;
+constexpr int CId = 8;
+const QString CRootHost = QStringLiteral("root");
+
 // Engine-aware container details. lxd's client is `lxc`; lxd/incus are instance
 // managers that don't use `logs`/`inspect`.
 QString containerCli(const QString &runtime)
@@ -72,75 +78,156 @@ bool isInstanceManager(const QString &runtime)
 {
     return runtime == QLatin1String("lxd") || runtime == QLatin1String("incus");
 }
-
-// Start/stop/restart a container row [Name, Runtime, …].
-CommandTab::RowAction containerAction(const QString &text, const QString &icon, const QString &verb)
+bool isDockerLike(const QString &runtime)
 {
-    return {text, icon, [verb](const QStringList &row) {
-        if (row.size() < 2)
+    return runtime == QLatin1String("docker") || runtime == QLatin1String("podman");
+}
+bool isRootDockerRow(const QStringList &row)
+{
+    return isDockerLike(row.value(CRuntime)) && row.value(CHost) == CRootHost;
+}
+
+QStringList dockerContextPrefix(const QStringList &row)
+{
+    const QString runtime = row.value(CRuntime);
+    const QString host = row.value(CHost);
+    if (runtime == QLatin1String("docker") && !host.isEmpty() && host != CRootHost)
+        return {QStringLiteral("--context"), host};
+    return {};
+}
+
+QStringList containerArgs(const QStringList &row, const QStringList &args)
+{
+    QStringList out = dockerContextPrefix(row);
+    out += args;
+    return out;
+}
+
+QString containerTarget(const QStringList &row)
+{
+    return row.value(CId).isEmpty() ? row.value(CName) : row.value(CId);
+}
+
+bool elevatedContainerControl(QWidget *parent, const QStringList &row, const QString &verb)
+{
+    QString error;
+    if (Auth::dockerControl(row.value(CRuntime), verb, containerTarget(row), &error))
+        return true;
+    KMessageBox::error(parent, error.isEmpty()
+        ? i18n("The container action failed.") : error, i18nc("@title:window", "Action Failed"));
+    return false;
+}
+
+bool runContainerCommand(QWidget *parent, const QStringList &row, const QString &verb,
+                         const QStringList &args, int timeoutMs = 15000)
+{
+    const QString runtime = row.value(CRuntime);
+    if (isRootDockerRow(row))
+        return elevatedContainerControl(parent, row, verb);
+
+    QProcess p;
+    p.setProcessChannelMode(QProcess::SeparateChannels);
+    p.start(containerCli(runtime), args);
+    if (!p.waitForStarted(2000)) {
+        KMessageBox::error(parent, i18n("Could not run %1.", containerCli(runtime)));
+        return false;
+    }
+    if (!p.waitForFinished(timeoutMs)) {
+        p.kill();
+        p.waitForFinished(3000);
+        KMessageBox::error(parent, i18n("The container action timed out."));
+        return false;
+    }
+    if (p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0)
+        return true;
+
+    QString error = QString::fromUtf8(p.readAllStandardError());
+    error += QString::fromUtf8(p.readAllStandardOutput());
+    error = error.trimmed();
+    // Docker/Podman rows from a root-owned local daemon may not carry the root
+    // marker if the table was refreshed before elevation. Fall back to KAuth.
+    if (isDockerLike(runtime) && row.value(CHost).isEmpty())
+        return elevatedContainerControl(parent, row, verb);
+    KMessageBox::error(parent, error.isEmpty()
+        ? i18n("The container action failed.") : error, i18nc("@title:window", "Action Failed"));
+    return false;
+}
+
+// Start/stop/restart a VM/container row [Name, Kind, Runtime, Host, …].
+CommandTab::RowAction containerAction(QWidget *parent, const QString &text, const QString &icon,
+                                      const QString &verb)
+{
+    return {text, icon, [parent, verb](const QStringList &row) {
+        if (row.size() <= CRuntime)
             return;
-        runCmd(containerCli(row.at(1)), {verb, row.at(0)}, 15000);
+        const int timeout = (verb == QLatin1String("stop") || verb == QLatin1String("restart"))
+            ? 130000 : 15000;
+        runContainerCommand(parent, row, verb, containerArgs(row, {verb, row.value(CName)}), timeout);
     }};
 }
 
 void wireContainers(QWidget *parent, CommandTab *tab)
 {
-    tab->addRowAction(containerAction(i18nc("@action", "Start"),
+    tab->addRowAction(containerAction(parent, i18nc("@action", "Start"),
         QStringLiteral("media-playback-start"), QStringLiteral("start")));
-    tab->addRowAction(containerAction(i18nc("@action", "Stop"),
+    tab->addRowAction(containerAction(parent, i18nc("@action", "Stop"),
         QStringLiteral("media-playback-stop"), QStringLiteral("stop")));
-    tab->addRowAction(containerAction(i18nc("@action", "Restart"),
+    tab->addRowAction(containerAction(parent, i18nc("@action", "Restart"),
         QStringLiteral("view-refresh"), QStringLiteral("restart")));
 
     tab->addMenuAction(i18nc("@action", "Logs"), QStringLiteral("text-x-log"), [parent, tab] {
         const QStringList row = firstSelected(parent, tab);
-        if (row.size() < 2)
+        if (row.size() <= CRuntime)
             return;
-        const QString name = row.at(0), rt = row.at(1), cli = containerCli(rt);
+        const QString name = row.value(CName), rt = row.value(CRuntime), cli = containerCli(rt);
         const QString text = isInstanceManager(rt)
             ? runCmd(cli, {QStringLiteral("info"), QStringLiteral("--show-log"), name}, 12000)
-            : runCmd(cli, {QStringLiteral("logs"), QStringLiteral("--tail"), QStringLiteral("500"), name}, 12000);
+            : runCmd(cli, containerArgs(row, {QStringLiteral("logs"), QStringLiteral("--tail"), QStringLiteral("500"), name}), 12000);
         Dialogs::showText(parent, i18nc("@title:window", "Logs: %1", name), text, true);
     });
 
     tab->addMenuAction(i18nc("@action", "Inspect"), QStringLiteral("document-properties"), [parent, tab] {
         const QStringList row = firstSelected(parent, tab);
-        if (row.size() < 2)
+        if (row.size() <= CRuntime)
             return;
-        const QString name = row.at(0), rt = row.at(1), cli = containerCli(rt);
+        const QString name = row.value(CName), rt = row.value(CRuntime), cli = containerCli(rt);
         const QString text = isInstanceManager(rt)
             ? runCmd(cli, {QStringLiteral("config"), QStringLiteral("show"), QStringLiteral("--expanded"), name}, 12000)
-            : runCmd(cli, {QStringLiteral("inspect"), name}, 12000);
+            : runCmd(cli, containerArgs(row, {QStringLiteral("inspect"), name}), 12000);
         Dialogs::showText(parent, i18nc("@title:window", "Inspect: %1", name), text);
     });
 
     tab->addMenuAction(i18nc("@action", "Shell"), QStringLiteral("utilities-terminal"), [parent, tab] {
         const QStringList row = firstSelected(parent, tab);
-        if (row.size() < 2)
+        if (row.size() <= CRuntime)
             return;
-        const QString name = row.at(0), rt = row.at(1), cli = containerCli(rt);
+        const QString name = row.value(CName), rt = row.value(CRuntime), cli = containerCli(rt);
         const QString term = haveCmd(QStringLiteral("konsole"))
             ? QStringLiteral("konsole") : QStringLiteral("x-terminal-emulator");
-        const QStringList args = isInstanceManager(rt)
+        QStringList args = isInstanceManager(rt)
             ? QStringList{QStringLiteral("-e"), cli, QStringLiteral("exec"), name, QStringLiteral("--"), QStringLiteral("bash")}
-            : QStringList{QStringLiteral("-e"), cli, QStringLiteral("exec"), QStringLiteral("-it"), name, QStringLiteral("bash")};
+            : QStringList{QStringLiteral("-e"), cli};
+        if (!isInstanceManager(rt))
+            args += containerArgs(row, {QStringLiteral("exec"), QStringLiteral("-it"), name, QStringLiteral("bash")});
         QProcess::startDetached(term, args);
     });
 
     tab->addMenuAction(i18nc("@action", "Remove"), QStringLiteral("edit-delete"), [parent, tab] {
         const QStringList row = firstSelected(parent, tab);
-        if (row.size() < 2)
+        if (row.size() <= CRuntime)
             return;
         if (!confirm(parent, i18n("Remove container \"%1\"?", row.value(0)), KStandardGuiItem::del()))
             return;
-        const QString name = row.at(0), rt = row.at(1), cli = containerCli(rt);
-        runCmd(cli, {isInstanceManager(rt) ? QStringLiteral("delete") : QStringLiteral("rm"), name}, 15000);
+        const QString name = row.value(CName), rt = row.value(CRuntime);
+        const QString verb = isInstanceManager(rt) ? QStringLiteral("delete") : QStringLiteral("rm");
+        runContainerCommand(parent, row, verb, containerArgs(row, {verb, name}), 15000);
         tab->refresh();
     });
 
-    // Show Docker (root): merge root-owned docker/podman containers (via KAuth)
-    // with the unprivileged list, so docker shows without docker-group membership.
-    tab->addBarAction(i18nc("@action", "Show Docker (root)"), QStringLiteral("security-high"), [parent, tab] {
+    // Show Root Docker: merge root-owned docker/podman containers (via KAuth)
+    // with the unprivileged/context list, so Docker VMs are visible without
+    // adding the user to the docker group.
+    tab->addBarAction(i18nc("@action", "Show Root Docker"), QStringLiteral("security-high"), [parent, tab] {
         QString error;
         Auth::dockerList(&error); // probe → polkit prompt
         if (!error.isEmpty()) {
@@ -151,15 +238,15 @@ void wireContainers(QWidget *parent, CommandTab *tab)
             QVector<QStringList> rows = Fetchers::containers();
             QSet<QString> ids;
             for (const QStringList &r : rows)
-                if (!r.value(6).isEmpty()) // incus rows have no ID — don't poison the set
-                    ids.insert(r.value(6));
+                if (!r.value(CId).isEmpty()) // incus rows have no ID — don't poison the set
+                    ids.insert(r.value(CId));
             for (const QStringList &r : Auth::dockerList())
-                if (r.value(6).isEmpty() || !ids.contains(r.value(6)))
+                if (r.value(CId).isEmpty() || !ids.contains(r.value(CId)))
                     rows.append(r);
             return rows;
         });
         tab->refresh();
-    });
+    }, i18n("Enter your password to show Docker and Podman containers owned by root, including VM-in-container images."));
 }
 
 /*┌──────────────────────╮
@@ -670,15 +757,16 @@ MainWindow::MainWindow(QWidget *parent) : KXmlGuiWindow(parent)
     wireSnaps(this, snapsTab);
     mTabs->addTab(snapsTab, i18nc("@title:tab", "Snaps"));
 
-    // 8. Containers (lifecycle + logs/inspect/shell).
+    // 8. VMs & Containers (lifecycle + logs/inspect/shell).
     auto *containersTab = new CommandTab(
-        {i18nc("@title:column", "Name"), i18nc("@title:column", "Runtime"),
+        {i18nc("@title:column", "Name"), i18nc("@title:column", "Kind"),
+         i18nc("@title:column", "Runtime"), i18nc("@title:column", "Host"),
          i18nc("@title:column", "Image"), i18nc("@title:column", "Status"),
          i18nc("@title:column", "Memory"), i18nc("@title:column", "Ports"),
          i18nc("@title:column", "ID"), i18nc("@title:column", "Created")},
-        3, Fetchers::containers, {}, this);
+        5, Fetchers::containers, {}, this);
     wireContainers(this, containersTab);
-    mTabs->addTab(containersTab, i18nc("@title:tab", "Containers"));
+    mTabs->addTab(containersTab, i18nc("@title:tab", "VMs && Containers"));
 
     // 9. Mounts (Unmount + bind-link management) — last, as in the original.
     auto *mountsTab = new CommandTab(

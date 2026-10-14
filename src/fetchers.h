@@ -15,7 +15,7 @@ QVector<QStringList> mounts();      // findmnt + bindln
 QVector<QStringList> ports();       // ss -tlnp
 QVector<QStringList> autostart();   // XDG autostart .desktop entries
 QVector<QStringList> snaps();       // snap services
-QVector<QStringList> containers();  // docker / podman / lxd
+QVector<QStringList> containers();  // Docker contexts / podman / incus / lxd
 QVector<QStringList> sessions();    // logind sessions (loginctl)
 
 /** One user's crontab as rows [User,Min,Hour,DoM,Month,DoW,Command]. The current

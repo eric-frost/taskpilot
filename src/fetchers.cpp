@@ -101,7 +101,7 @@ void flattenMounts(const QJsonArray &nodes, const QHash<QString, QJsonObject> &b
     }
 }
 
-// appendDockerLike now lives in util/dockerps.h (shared with the KAuth helper).
+// Docker row helpers now live in util/dockerps.h (shared with the KAuth helper).
 
 // LXD (`lxc`) and its fork Incus (`incus`) share the same JSON list format.
 void appendIncusLxd(QVector<QStringList> &out)
@@ -121,7 +121,10 @@ void appendIncusLxd(QVector<QStringList> &out)
                 continue;
             const QJsonObject cfg = c.value(QStringLiteral("config")).toObject();
             const QString image = cfg.value(QStringLiteral("image.description")).toString();
-            out.append({name, label, image, c.value(QStringLiteral("status")).toString(),
+            const QString type = c.value(QStringLiteral("type")).toString();
+            const QString kind = type == QLatin1String("virtual-machine")
+                ? QStringLiteral("VM") : QStringLiteral("Container");
+            out.append({name, kind, label, QString(), image, c.value(QStringLiteral("status")).toString(),
                         QStringLiteral("—"), QString(), QString(),
                         c.value(QStringLiteral("created_at")).toString()});
         }
@@ -268,7 +271,7 @@ QVector<QStringList> Fetchers::snaps()
 QVector<QStringList> Fetchers::containers()
 {
     QVector<QStringList> out;
-    appendDockerLike(QStringLiteral("docker"), out);
+    appendDockerContexts(out);
     appendDockerLike(QStringLiteral("podman"), out);
     appendIncusLxd(out);
     return out;
