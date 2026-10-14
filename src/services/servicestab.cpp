@@ -97,11 +97,16 @@ protected:
     }
 
 private:
-    // Re-run row filtering (the old invalidateRowsFilter/invalidateFilter are deprecated).
+    // Re-run row filtering.  Qt 6.10 deprecates invalidateRowsFilter() in
+    // favour of the begin/endFilterChange pair, which older Qt lacks.
     void rerun()
     {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
         beginFilterChange();
         endFilterChange(QSortFilterProxyModel::Direction::Rows);
+#else
+        invalidateRowsFilter();
+#endif
     }
 
     ServiceModel *mModel;
