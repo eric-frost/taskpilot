@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Eric Frost
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Maintainer: Eric Frost <9555559+eric-frost@users.noreply.github.com>
+
+pkgname=taskpilot
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="System task manager for systemd, cron, mounts, ports and containers"
+arch=(x86_64)
+url="https://github.com/eric-frost/taskpilot"
+license=(GPL-3.0-or-later)
+depends=(qt6-base kauth kcoreaddons ki18n kxmlgui kconfig kconfigwidgets kcrash
+         kitemmodels kitemviews kwidgetsaddons polkit)
+makedepends=(cmake extra-cmake-modules)
+optdepends=('docker: list and control Docker containers'
+            'podman: list and control Podman containers'
+            'incus: list and control Incus instances'
+            'cronie: view and edit cron jobs')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cmake -B build -S "$pkgname-$pkgver" -DCMAKE_BUILD_TYPE=None -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}

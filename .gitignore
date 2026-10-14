@@ -1,6 +1,7 @@
 # Build output
 /build/
 /builddir/
+/dist/
 
 # Editor / KDE cruft
 *.user

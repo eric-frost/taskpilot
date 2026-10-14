@@ -35,7 +35,24 @@ Built with Qt 6 and KDE Frameworks 6.
 Privileged operations go through a KDE **KAuth** helper (polkit), so you are
 prompted only when an action actually needs root.
 
+## Installing
+
+Download the package for your distro from the [releases page](https://github.com/eric-frost/taskpilot/releases):
+
+| Distro | Package | Install with |
+|---|---|---|
+| Kubuntu/Ubuntu 26.04 | `taskpilot_<version>_ubuntu-26.04_amd64.deb` | `sudo apt install ./taskpilot_*.deb` |
+| Debian 13 | `taskpilot_<version>_debian-13_amd64.deb` | `sudo apt install ./taskpilot_*.deb` |
+| Fedora 44 | `taskpilot-<version>-1.fc44.x86_64.rpm` | `sudo dnf install ./taskpilot-*.rpm` |
+| openSUSE Tumbleweed | `taskpilot-<version>-1.opensuse-tumbleweed.x86_64.rpm` | `sudo zypper install --allow-unsigned-rpm ./taskpilot-*.rpm` |
+| Arch Linux | `taskpilot-<version>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./taskpilot-*.pkg.tar.zst` |
+
+Each package is built on the distro it names, so use the one that matches yours.  `SHA256SUMS` lists their checksums.  `packaging/build-packages.sh` rebuilds them all in Podman containers and test-installs each one.
+
+There is no Flatpak or AppImage: TaskPilot's root actions run through a system-wide polkit policy and D-Bus helper, which a sandboxed or self-contained bundle can't install.
+
 ## Building
+
 
 Requires Qt 6.5+ and KDE Frameworks 6.
 
