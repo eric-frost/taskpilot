@@ -33,6 +33,17 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-14">
+      <description>
+        <p>The Containers tab is now VMs &amp; Containers: it marks virtual
+           machines, including VM-in-container images such as dockur/windows,
+           lists every Docker context, and can start, stop, restart and remove
+           root-owned containers. Root-owned Docker and Podman containers are
+           listed without a password in the active desktop session, running
+           Incus/LXD instances show memory use, and disabled instances of
+           templated services stay listed in Services.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-06-28">
       <description>
         <p>Per-tab right-click menus (Logs, Dependencies, Edit Unit File, Env

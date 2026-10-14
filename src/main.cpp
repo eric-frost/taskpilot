@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 
     KAboutData about(QStringLiteral("taskpilot"),
                      i18nc("@title", "TaskPilot"),
-                     QStringLiteral("0.3.0"),
+                     QStringLiteral(TASKPILOT_VERSION),
                      i18n("A system task manager for systemd services, timers, mounts, cron jobs and more."),
                      KAboutLicense::GPL_V3,
                      i18n("© 2026 Eric Frost"));

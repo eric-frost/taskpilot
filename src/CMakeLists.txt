@@ -23,6 +23,7 @@ target_sources(taskpilot PRIVATE
 )
 
 target_include_directories(taskpilot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(taskpilot PRIVATE TASKPILOT_VERSION="${PROJECT_VERSION}")
 
 target_link_libraries(taskpilot PRIVATE
     Qt6::Core
