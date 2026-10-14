@@ -16,6 +16,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QRegularExpression>
 #include <QSet>
 #include <QStandardPaths>
@@ -124,8 +125,19 @@ void appendIncusLxd(QVector<QStringList> &out)
             const QString type = c.value(QStringLiteral("type")).toString();
             const QString kind = type == QLatin1String("virtual-machine")
                 ? QStringLiteral("VM") : QStringLiteral("Container");
+            // Running instances report memory as state.memory.{usage,total} bytes.
+            const QJsonObject memory = c.value(QStringLiteral("state")).toObject()
+                .value(QStringLiteral("memory")).toObject();
+            const qint64 used = memory.value(QStringLiteral("usage")).toInteger();
+            const qint64 total = memory.value(QStringLiteral("total")).toInteger();
+            const QLocale locale;
+            QString mem = QStringLiteral("—");
+            if (used > 0)
+                mem = locale.formattedDataSize(used, 1, QLocale::DataSizeIecFormat)
+                    + (total > 0 ? QStringLiteral(" / ")
+                           + locale.formattedDataSize(total, 1, QLocale::DataSizeIecFormat) : QString());
             out.append({name, kind, label, QString(), image, c.value(QStringLiteral("status")).toString(),
-                        QStringLiteral("—"), QString(), QString(),
+                        mem, QString(), QString(),
                         c.value(QStringLiteral("created_at")).toString()});
         }
     }
